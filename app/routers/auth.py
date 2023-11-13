@@ -1,10 +1,9 @@
-from fastapi.security import OAuth2PasswordRequestForm
-from fastapi import APIRouter, Response, status, Depends, HTTPException, Header
+from fastapi import APIRouter, status, Depends, HTTPException
 from datetime import datetime, timedelta
 
 from app.config.settings import settings
 from app.schemas.user import CreateUserSchema, UserResponse, RegisteredUser, User, LoginUserSchema
-from app.schemas.login import LoginResponse
+from app.schemas.login import LoginResponse, RefreshResponse
 from app.database.database import Users
 from app.utils.password import hash_password, verify_password
 from app.utils.oauth2 import create_refresh_token, create_access_token, auth_user, refresh_token
@@ -62,13 +61,12 @@ async def login(payload: LoginUserSchema):
     return LoginResponse(access_token=access_token, refresh_token=refresh_token)
 
 
-@router.post('/refresh')
+@router.post('/refresh', status_code=status.HTTP_202_ACCEPTED, response_model=RefreshResponse)
 async def refresh(new_bearer: str = Depends(refresh_token)):
-    return {"token": new_bearer}
+    return RefreshResponse(access_token=new_bearer)
 
 
 @router.get('/me')
 async def me(user: RegisteredUser = Depends(auth_user)):
     """Example of protected route"""
-    print(user)
     return User(**user.model_dump())
